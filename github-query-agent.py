@@ -3,6 +3,7 @@ import google.generativeai as genai
 import requests # For GitHub API calls
 import os
 import json # For pretty printing errors from GitHub API
+import datetime
 
 # --- Configuration ---
 MODEL_NAME = "gemini-1.5-flash-latest"
@@ -28,9 +29,16 @@ def generate_github_query_from_text(natural_language_input: str) -> tuple[str | 
     """
     Uses Gemini to generate GitHub API query parameters from natural language.
     """
+    today = datetime.date.today()
+    today_str = today.strftime('%Y-%m-%d')
+    
     prompt = f"""
 You are an expert AI assistant that translates natural language descriptions into precise GitHub Search API query parameters.
 Your goal is to create a query string that can be used as the value for the 'q' parameter in the GitHub API's /search/repositories endpoint.
+
+--- Date/Time Context ---
+For your reference, today's date is {today_str}.
+--- End Date/Time Context ---
 
 Follow these GitHub Search API query syntax guidelines:
 - Basic keywords: 'search terms' (implicitly ANDed)
@@ -42,16 +50,13 @@ Follow these GitHub Search API query syntax guidelines:
 - User/Organization: 'user:someuser', 'org:someorg'
 - Date ranges: 'created:>2022-01-01', 'pushed:>=2023-01-01'
 - Boolean operators: Use spaces for AND. For OR, use 'OR'. For NOT, use 'NOT' or '-'.
-  Example: 'framework language:python OR language:javascript stars:>1000'
 - Qualifiers for specific fields: 'in:name', 'in:description', 'in:readme'
-  Example: 'security in:readme language:go'
-- Sorting: 'sort:stars', 'sort:forks', 'sort:updated' (append -asc or -desc, e.g., 'sort:updated-desc')
-  If sorting is requested, include it as part of the query string.
+- Sorting: 'sort:stars', 'sort:forks', 'sort:updated' (append -asc or -desc)
 
 Important Instructions:
 1. Your output should be ONLY the search terms and qualifiers, suitable to be appended after `?q=` in a GitHub API URL.
-2. Do NOT include `q=` in your output. For example, if the user asks for 'python machine learning libraries', you should output 'python machine learning language:python'.
-3. Ensure the query string is well-formed for the GitHub API.
+2. Do NOT include `q=` in your output.
+3. Pay close attention to the Date/Time Context provided above when handling time-based requests.
 4. If the request is too vague or cannot be translated, output 'ERROR: Could not generate a valid query from the input.'
 
 User's request: "{natural_language_input}"
@@ -100,7 +105,7 @@ def fetch_github_repos(query_params: str, github_pat: str | None) -> tuple[list 
     # Replace spaces with '+' for URL encoding, though requests usually handles this.
     # query_params_encoded = query_params.replace(" ", "+")
     # Using params dictionary is safer as requests handles encoding.
-    params = {'q': query_params, 'per_page': 30} # Fetch up to 30 results
+    params = {'q': query_params, 'per_page': 100} # Fetch up to 30 results
 
     try:
         response = requests.get(GITHUB_API_BASE_URL, headers=headers, params=params, timeout=20)
@@ -241,5 +246,4 @@ with col2:
 
 
 st.markdown("---")
-st.markdown("Built with [Streamlit](https://streamlit.io), [Google Gemini](https://ai.google.dev/), and [GitHub API](https://docs.github.com/en/rest).")
 
