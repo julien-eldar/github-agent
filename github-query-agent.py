@@ -301,7 +301,7 @@ with col1:
     natural_input = st.text_area(
         "Enter your description:",
         height=100,
-        placeholder="e.g., 'Python libraries for machine learning with >1000 stars, updated last year'"
+        placeholder="e.g., 'Python libraries for machine learning with >50000 stars, updated last year'"
     )
 
     if st.button("✨ Generate GitHub Query Parameters", use_container_width=True, type="primary"):
